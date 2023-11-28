@@ -10,7 +10,7 @@ title_as_file_name = Boom
 [display]
 width = 1280
 height = 720
-high_dpi = 1
+high_dpi = 0
 samples = 0
 fullscreen = 0
 update_frequency = 0
