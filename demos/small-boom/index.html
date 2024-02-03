@@ -267,7 +267,7 @@
 			runningFromFileWarning.style.display = "block";
 		}
 		else {
-			EngineLoader.stream_wasm = "false" === "true";
+			EngineLoader.stream_wasm = "true" === "true";
 			EngineLoader.load("canvas", "smallboom");
 			runningFromFileWarning.parentNode.removeChild(runningFromFileWarning);
 		}
