@@ -1,16 +1,16 @@
 [project]
-title = Boom
+title = small-boom
 version = 1.0.1
 write_log = 0
 compress_archive = 1
 publisher = unnamed
 developer = unnamed
-title_as_file_name = Boom
+title_as_file_name = smallboom
 
 [display]
 width = 1280
 height = 720
-high_dpi = 0
+high_dpi = 1
 samples = 0
 fullscreen = 0
 update_frequency = 0
@@ -57,7 +57,7 @@ default_texture_min_filter = linear
 default_texture_mag_filter = linear
 max_draw_calls = 8
 max_characters = 1
-max_debug_vertices = 0
+max_debug_vertices = 10000
 texture_profiles = /builtins/graphics/default.texture_profiles
 verify_graphics_calls = 1
 memory_size = 512
