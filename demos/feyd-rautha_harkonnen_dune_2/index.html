@@ -186,14 +186,14 @@
 	<script id='engine-setup' type='text/javascript'>
 	var extra_params = {
 		archive_location_filter: function( path ) {
-			return ("archive" + path + "1");
+			return ("archive" + path + "?1");
 		},
 		engine_arguments: ["--verify-graphics-calls=false",],
 		custom_heap_size: 67108864,
 		full_screen_container: "#canvas-container",
 		disable_context_menu: true,
 		retry_time:1.0,
-		retry_count:10,
+		retry_count:100,
 		unsupported_webgl_callback: function() {
 			var e = document.getElementById("webgl-not-supported");
 			e.style.display = "block";
@@ -287,7 +287,7 @@
 			runningFromFileWarning.style.display = "block";
 		}
 		else {
-			EngineLoader.stream_wasm = "false" === "true";
+			EngineLoader.stream_wasm = "true" === "true";
 			EngineLoader.load("canvas", "feydrautha_harkonnen_dune_2");
 			runningFromFileWarning.parentNode.removeChild(runningFromFileWarning);
 		}
