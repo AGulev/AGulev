@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ASTC Texture Upload Test</title>
+</head>
+<body>
+  <h1>ASTC glCompressedTexImage3D Test (2 Layers)</h1>
+  <pre id="log"></pre>
+
+  <script type="module">
+    const log = msg => document.getElementById("log").textContent += msg + "\n";
+
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl2");
+    if (!gl) {
+      log("WebGL2 not supported ❌");
+      throw new Error("WebGL2 required");
+    }
+
+    // Log general WebGL context info
+    log("WebGL2 context created ✅");
+
+    const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    if (debugInfo) {
+      const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+      const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+      log(`Vendor: ${vendor}`);
+      log(`Renderer: ${renderer}`);
+    } else {
+      log("WEBGL_debug_renderer_info not available ❌");
+    }
+
+    log("Version: " + gl.getParameter(gl.VERSION));
+    log("Shading Language Version: " + gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
+    log("Max Texture Size: " + gl.getParameter(gl.MAX_TEXTURE_SIZE));
+    log("Max 3D Texture Size: " + gl.getParameter(gl.MAX_3D_TEXTURE_SIZE));
+    log("Max Array Texture Layers: " + gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS));
+
+    // ASTC extension
+    const astc = gl.getExtension("WEBGL_compressed_texture_astc");
+    if (!astc) {
+      log("ASTC extension not supported ❌");
+      throw new Error("ASTC not supported");
+    }
+
+    log("ASTC extension loaded ✅");
+
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+    const format = astc.COMPRESSED_RGBA_ASTC_4x4_KHR;
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex);
+
+    const width = 4;
+    const height = 4;
+    const depth = 2;
+
+    const data = new Uint8Array([
+      0xFC, 0xFD, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
+      0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
+
+      0xFC, 0xFD, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB,
+      0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB
+    ]);
+
+    try {
+      gl.compressedTexImage3D(
+        gl.TEXTURE_2D_ARRAY,
+        0,
+        format,
+        width,
+        height,
+        depth,
+        0,
+        data
+      );
+
+      const err = gl.getError();
+      if (err === gl.NO_ERROR) {
+        log("glCompressedTexImage3D succeeded ✅");
+      } else {
+        log(`glCompressedTexImage3D failed with error: 0x${err.toString(16)} ❌`);
+      }
+    } catch (e) {
+      log("Exception thrown:");
+      log(e.message);
+    }
+  </script>
+</body>
+</html>
