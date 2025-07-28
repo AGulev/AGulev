@@ -9,14 +9,48 @@
   <pre id="log"></pre>
 
   <script type="module">
+
+    function getBrowserInfo() {
+      const ua = navigator.userAgent;
+
+      let tem, 
+          matched = ua.match(/(opera|chrome|edg|safari|firefox|msie|trident(?=\/))\/?\s*([\d\.]+)/i) || [];
+
+      if (/trident/i.test(matched[1])) {
+        tem = /\brv[ :]+(\d+)/g.exec(ua) || [];
+        return { name: 'IE', version: tem[1] || '' };
+      }
+
+      if (matched[1] === 'Chrome') {
+        tem = ua.match(/\b(OPR|Edg|Brave)\/(\d+)/);
+        if (tem != null) {
+          return { name: tem[1].replace('OPR', 'Opera').replace('Edg', 'Edge'), version: tem[2] };
+        }
+      }
+
+      matched = matched[2] ? [matched[1], matched[2]] : [navigator.appName, navigator.appVersion, '-?'];
+
+      if ((tem = ua.match(/version\/([\.\d]+)/i)) != null) {
+        matched.splice(1, 1, tem[1]);
+      }
+
+      return {
+        name: matched[0],
+        version: matched[1]
+      };
+    }
     const log = msg => document.getElementById("log").textContent += msg + "\n";
 
+    const browser = getBrowserInfo();
+    log(`Browser: ${browser.name} ${browser.version}`);
+    
     const canvas = document.createElement("canvas");
     const gl = canvas.getContext("webgl2");
     if (!gl) {
       log("WebGL2 not supported ❌");
       throw new Error("WebGL2 required");
     }
+
 
     // Log general WebGL context info
     log("WebGL2 context created ✅");
