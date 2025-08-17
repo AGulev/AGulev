@@ -120,6 +120,36 @@ class DefoldDashboard {
         });
     }
     
+    calculateDefaultVersion(csvFile, minimumVersion) {
+        const rawData = this.csvCache.get(csvFile);
+        if (!rawData) return minimumVersion;
+        
+        // Get all versions with data (non-zero values)
+        const versions = rawData
+            .filter(row => {
+                const values = Object.values(row);
+                return values.some(value => value !== 'VERSION' && parseFloat(value) > 0);
+            })
+            .map(row => row.VERSION);
+        
+        // Sort versions
+        versions.sort(this.compareVersions.bind(this));
+        
+        // Filter to only include versions >= minimum allowed
+        const validVersions = versions.filter(version => 
+            this.compareVersions(version, minimumVersion) >= 0
+        );
+        
+        // If we have more than 20 versions, start from the 20th from the end
+        if (validVersions.length > 20) {
+            const startIndex = validVersions.length - 20;
+            return validVersions[startIndex];
+        }
+        
+        // If we have 20 or fewer versions, start from the minimum
+        return minimumVersion;
+    }
+    
     formatBytes(bytes) {
         if (bytes === 0) return '0 B';
         
@@ -132,8 +162,10 @@ class DefoldDashboard {
     
     createBundleChart() {
         const rawData = this.csvCache.get('bundle_report.csv');
-        const defaultVersion = '1.2.166';
         const platforms = ['arm64-ios', 'arm64-android', 'armv7-android', 'x86_64-macos', 'js-web', 'wasm-web', 'x86_64-linux', 'x86-win32', 'x86_64-win32', 'arm64-macos'];
+        
+        // Calculate default version (last 20 versions)
+        const defaultVersion = this.calculateDefaultVersion('bundle_report.csv', '1.2.166');
         
         // Store chart config
         this.chartConfigs.set('bundle-chart', {
@@ -150,8 +182,10 @@ class DefoldDashboard {
     
     createEngineChart() {
         const rawData = this.csvCache.get('engine_report.csv');
-        const defaultVersion = '1.2.166';
         const platforms = ['arm64-ios', 'arm64-android', 'armv7-android', 'x86_64-macos', 'js-web', 'wasm-web', 'x86_64-linux', 'x86-win32', 'x86_64-win32', 'arm64-macos'];
+        
+        // Calculate default version (last 20 versions)
+        const defaultVersion = this.calculateDefaultVersion('engine_report.csv', '1.2.166');
         
         // Store chart config
         this.chartConfigs.set('engine-chart', {
@@ -168,8 +202,10 @@ class DefoldDashboard {
     
     createEditorChart() {
         const rawData = this.csvCache.get('editor_report.csv');
-        const defaultVersion = '1.3.6';
         const platforms = ['x86_64-macos', 'x86_64-win32', 'x86_64-linux', 'arm64-macos'];
+        
+        // Calculate default version (last 20 versions)
+        const defaultVersion = this.calculateDefaultVersion('editor_report.csv', '1.3.6');
         
         // Store chart config
         this.chartConfigs.set('editor-chart', {
@@ -186,8 +222,10 @@ class DefoldDashboard {
     
     createBobChart() {
         const rawData = this.csvCache.get('bob_report.csv');
-        const defaultVersion = '1.2.166';
         const platforms = ['x86_64-macos'];
+        
+        // Calculate default version (last 20 versions)
+        const defaultVersion = this.calculateDefaultVersion('bob_report.csv', '1.2.166');
         
         // Store chart config
         this.chartConfigs.set('bob-chart', {
@@ -240,7 +278,7 @@ class DefoldDashboard {
                     size: 4,
                     color: this.platformColors[platform] || '#666'
                 },
-                hovertemplate: `<b>%{fullData.name}</b><br>Version: %{x}<br>Size: %{text}<extra></extra>`,
+                hovertemplate: `<b>%{fullData.name}</b><br>Version: %{x}<br>Size: %{text}<br>Bytes: %{y:,.0f}<extra></extra>`,
                 text: sizes.map(size => this.formatBytes(size)),
                 hoverlabel: {
                     bgcolor: '#FFFFDD',
@@ -421,7 +459,7 @@ class DefoldDashboard {
                     size: 4,
                     color: this.platformColors[platform] || '#666'
                 },
-                hovertemplate: `<b>%{fullData.name}</b><br>Version: %{x}<br>Size: %{text}<extra></extra>`,
+                hovertemplate: `<b>%{fullData.name}</b><br>Version: %{x}<br>Size: %{text}<br>Bytes: %{y:,.0f}<extra></extra>`,
                 text: sizes.map(size => this.formatBytes(size)),
                 hoverlabel: {
                     bgcolor: '#FFFFDD',
