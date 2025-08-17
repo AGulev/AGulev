@@ -140,16 +140,23 @@ class DataProcessor {
         const versionsInRange = this.getVersionsInRange(allVersions, startVersion, endVersion);
         
         const timeline = [];
+        let filenameColumn = 'compileunits'; // default
         
         // Load data for each version
         for (const version of versionsInRange) {
             try {
                 const csvData = await CSVParser.loadCSV(`${platform}/${version}.csv`);
                 
+                // Detect filename column from first version's data
+                if (csvData.length > 0 && filenameColumn === 'compileunits') {
+                    const headers = Object.keys(csvData[0]);
+                    filenameColumn = CSVParser.getFilenameColumn(headers);
+                }
+                
                 // Find the file in this version's data
-                const normalizedFileName = this.normalizeFilePath(fileName);
+                const normalizedFileName = DataProcessor.normalizeFilePath(fileName);
                 const fileRow = csvData.find(row => 
-                    this.normalizeFilePath(row.compileunits) === normalizedFileName
+                    DataProcessor.normalizeFilePath(row[filenameColumn]) === normalizedFileName
                 );
                 
                 const size = fileRow ? (parseInt(fileRow[metricType]) || 0) : 0;
