@@ -192,10 +192,10 @@ class DataProcessor {
             const compileUnit = this.normalizeFilePath(row[filenameColumn]);
             const metricValue = parseInt(row[metricType]) || 0;
             
-            
             data1Map.set(compileUnit, {
                 size: metricValue,
-                compileUnit
+                compileUnit,
+                originalPath: row[filenameColumn]
             });
         });
         
@@ -206,17 +206,22 @@ class DataProcessor {
             
             data2Map.set(compileUnit, {
                 size: metricValue,
-                compileUnit
+                compileUnit,
+                originalPath: row[filenameColumn]
             });
         });
         
-        // Compare and create comparison data
+        // Detect file moves before processing comparisons
+        const moveDetection = this.detectFileMoves(data1Map, data2Map);
+        const { mergedData1, mergedData2 } = moveDetection;
+        
+        // Compare and create comparison data using merged data (after move detection)
         const comparisons = [];
-        const allKeys = new Set([...data1Map.keys(), ...data2Map.keys()]);
+        const allKeys = new Set([...mergedData1.keys(), ...mergedData2.keys()]);
         
         allKeys.forEach(compileUnit => {
-            const item1 = data1Map.get(compileUnit);
-            const item2 = data2Map.get(compileUnit);
+            const item1 = mergedData1.get(compileUnit);
+            const item2 = mergedData2.get(compileUnit);
             
             const size1 = item1 ? item1.size : 0;
             const size2 = item2 ? item2.size : 0;
@@ -228,6 +233,9 @@ class DataProcessor {
                 changeType = difference > 0 ? 'increased' : 'decreased';
             }
             
+            // Add move detection info if applicable
+            const moveInfo = item1?.moveInfo || item2?.moveInfo;
+            
             comparisons.push({
                 compileUnit,
                 size1,
@@ -235,7 +243,12 @@ class DataProcessor {
                 difference,
                 percentChange,
                 changeType,
-                metricType
+                metricType,
+                ...(moveInfo && { 
+                    isMoved: true, 
+                    moveInfo: moveInfo,
+                    displayName: moveInfo.displayName 
+                })
             });
         });
         
@@ -244,6 +257,108 @@ class DataProcessor {
         
         
         return comparisons;
+    }
+
+    static detectFileMoves(data1Map, data2Map) {
+        // Algorithm to detect file moves by comparing basenames and sizes
+        // Returns merged data maps where moves are consolidated as single entities
+        
+        const mergedData1 = new Map(data1Map);
+        const mergedData2 = new Map(data2Map);
+        const moveInfo = new Map();
+        
+        // Get files that are only in data1 (potentially moved out)
+        const onlyInData1 = [];
+        for (const [key, value] of data1Map) {
+            if (!data2Map.has(key)) {
+                onlyInData1.push({ key, value });
+            }
+        }
+        
+        // Get files that are only in data2 (potentially moved in)
+        const onlyInData2 = [];
+        for (const [key, value] of data2Map) {
+            if (!data1Map.has(key)) {
+                onlyInData2.push({ key, value });
+            }
+        }
+        
+        // Try to match files by basename and similar size
+        const matchedMoves = [];
+        
+        for (const item1 of onlyInData1) {
+            const basename1 = this.getBasename(item1.key);
+            const size1 = item1.value.size;
+            
+            for (const item2 of onlyInData2) {
+                const basename2 = this.getBasename(item2.key);
+                const size2 = item2.value.size;
+                
+                // Check if basenames match and sizes are similar (within 10% tolerance)
+                if (basename1 === basename2 && this.sizesAreSimilar(size1, size2)) {
+                    matchedMoves.push({
+                        oldKey: item1.key,
+                        newKey: item2.key,
+                        oldValue: item1.value,
+                        newValue: item2.value,
+                        basename: basename1
+                    });
+                    break; // Move to next item1 after finding a match
+                }
+            }
+        }
+        
+        // Process matched moves
+        for (const move of matchedMoves) {
+            // Use the new path as the canonical key
+            const canonicalKey = move.newKey;
+            
+            // Create move info
+            const moveDetails = {
+                oldPath: move.oldValue.originalPath,
+                newPath: move.newValue.originalPath,
+                displayName: `${move.basename} (moved from ${this.getDirectoryPath(move.oldKey)} to ${this.getDirectoryPath(move.newKey)})`
+            };
+            
+            // Remove the individual entries
+            mergedData1.delete(move.oldKey);
+            mergedData2.delete(move.newKey);
+            
+            // Add the moved file with combined info
+            mergedData1.set(canonicalKey, {
+                ...move.oldValue,
+                moveInfo: moveDetails
+            });
+            
+            mergedData2.set(canonicalKey, {
+                ...move.newValue,
+                moveInfo: moveDetails
+            });
+        }
+        
+        return { mergedData1, mergedData2, moveInfo: matchedMoves };
+    }
+    
+    static getBasename(filePath) {
+        // Extract the basename (filename without directory path)
+        const parts = filePath.split('/');
+        return parts[parts.length - 1];
+    }
+    
+    static getDirectoryPath(filePath) {
+        // Extract the directory path (everything except the basename)
+        const parts = filePath.split('/');
+        return parts.slice(0, -1).join('/') || '/';
+    }
+    
+    static sizesAreSimilar(size1, size2, tolerance = 0.1) {
+        // Check if sizes are similar within tolerance percentage
+        if (size1 === 0 && size2 === 0) return true;
+        if (size1 === 0 || size2 === 0) return false;
+        
+        const diff = Math.abs(size1 - size2);
+        const average = (size1 + size2) / 2;
+        return (diff / average) <= tolerance;
     }
 
     static processData(data1, data2, includeVMSize = true, includeFileSize = true, changeThreshold = 50) {

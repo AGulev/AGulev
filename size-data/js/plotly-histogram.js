@@ -96,7 +96,13 @@ class PlotlyHistogramChart {
         // Process all changed files in sorted order
         processedComparisons.forEach(comp => {
             const fullFileName = comp.compileUnit;
-            const fileName = this.truncateFileName(fullFileName);
+            let fileName = this.truncateFileName(fullFileName);
+            
+            // Add move indicator to displayed file name if applicable
+            if (comp.isMoved) {
+                fileName = '📁 ' + fileName;
+            }
+            
             const size1 = comp.size1 || 0;
             const size2 = comp.size2 || 0;
             const change = comp.change;
@@ -106,12 +112,21 @@ class PlotlyHistogramChart {
             barValues.push(change);
             
             // Use simple color scheme based on direction
+            // Create hover text with move information if applicable
+            let hoverText = `${fullFileName}<br>Metric: ${metricType.toUpperCase()}<br>`;
+            
+            if (comp.isMoved) {
+                hoverText += `📁 MOVED: ${comp.moveInfo.oldPath} → ${comp.moveInfo.newPath}<br>`;
+            }
+            
             if (change > 0) {
-                hoverTexts.push(`${fullFileName}<br>Metric: ${metricType.toUpperCase()}<br>Became larger: ${this.formatBytes(change)}<br>From: ${this.formatBytes(size1)} → ${this.formatBytes(size2)}<br>Change: +${this.formatBytes(change)} (+${percentChange.toFixed(1)}%)`);
+                hoverText += `Became larger: ${this.formatBytes(change)}<br>From: ${this.formatBytes(size1)} → ${this.formatBytes(size2)}<br>Change: +${this.formatBytes(change)} (+${percentChange.toFixed(1)}%)`;
+                hoverTexts.push(hoverText);
                 barColors.push(this.getIncreaseColor(metricType));
                 increasedCount++;
             } else {
-                hoverTexts.push(`${fullFileName}<br>Metric: ${metricType.toUpperCase()}<br>Became smaller: ${this.formatBytes(Math.abs(change))}<br>From: ${this.formatBytes(size1)} → ${this.formatBytes(size2)}<br>Change: ${this.formatBytes(change)} (${percentChange.toFixed(1)}%)`);
+                hoverText += `Became smaller: ${this.formatBytes(Math.abs(change))}<br>From: ${this.formatBytes(size1)} → ${this.formatBytes(size2)}<br>Change: ${this.formatBytes(change)} (${percentChange.toFixed(1)}%)`;
+                hoverTexts.push(hoverText);
                 barColors.push(this.getDecreaseColor(metricType));
                 decreasedCount++;
             }

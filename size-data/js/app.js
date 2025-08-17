@@ -635,9 +635,17 @@ class DefoldSizeAnalyzer {
             const changeClass = comp.difference > 0 ? 'positive' : 
                                comp.difference < 0 ? 'negative' : 'neutral';
             
+            // Add move indicator to display name if applicable
+            let displayName = comp.compileUnit;
+            let moveIndicator = '';
+            if (comp.isMoved) {
+                moveIndicator = ' 📁';
+                displayName = comp.displayName || comp.compileUnit;
+            }
+            
             html += `
                 <div class="file-item">
-                    <div class="file-name" title="${comp.compileUnit}">${comp.compileUnit}</div>
+                    <div class="file-name" title="${comp.compileUnit}${comp.isMoved ? ' (File was moved)' : ''}">${displayName}${moveIndicator}</div>
                     <div class="file-sizes">
                         <div class="size-value">${DataProcessor.formatBytes(comp.size1)}</div>
                         <div class="size-value">${DataProcessor.formatBytes(comp.size2)}</div>
